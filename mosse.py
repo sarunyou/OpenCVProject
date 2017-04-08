@@ -36,6 +36,24 @@ from common import draw_str, RectSelector
 import video
 os.system('rm *.jpg')
 
+def getNoise(image): 
+    row,col= image.shape[:2]
+    s_vs_p = 0.4
+    amount = 0.1
+    out = image
+    # Salt mode
+    num_salt = np.ceil(amount * image.size * s_vs_p)
+    coords = [np.random.randint(0, i - 1, int(num_salt))
+                for i in image.shape]
+    out[coords] = 1
+
+    # Pepper mode
+    num_pepper = np.ceil(amount* image.size * (1. - s_vs_p))
+    coords = [np.random.randint(0, i - 1, int(num_pepper))
+                for i in image.shape]
+    out[coords] = 0
+    return out
+
 def rnd_warp(a):
     h, w = a.shape[:2]
     T = np.zeros((2, 3))
@@ -161,6 +179,7 @@ class App:
 
     def onrect(self, rect):
         frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+        frame_gray = getNoise(frame_gray)
         tracker = MOSSE(frame_gray, rect)
         self.trackers.append(tracker)
 
@@ -171,10 +190,12 @@ class App:
                 if not ret:
                     break
                 frame_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+                frame_gray = getNoise(frame_gray)
                 for tracker in self.trackers:
                     tracker.update(frame_gray)
 
             vis = self.frame.copy()
+            vis = getNoise(vis)
             for tracker in self.trackers:
                 tracker.draw_state(vis)
             if len(self.trackers) > 0:

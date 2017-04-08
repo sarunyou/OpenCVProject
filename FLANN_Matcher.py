@@ -6,7 +6,7 @@ import glob
 MIN_MATCH_COUNT = 10
 
 img1 = cv2.imread('./last_img0.jpg',0)          # queryImage
-img2 = cv2.imread('./last_img69.jpg',0) # trainImage
+img2 = cv2.imread('./last_img49.jpg',0) # trainImage
 
 # Initiate SIFT detector
 sift = cv2.xfeatures2d.SIFT_create()
@@ -34,16 +34,18 @@ if len(good)>MIN_MATCH_COUNT:
     dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+    print 'M', M
     matchesMask = mask.ravel().tolist()
     h,w = img1.shape
     h2, w2 = img2.shape
     pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-    pts2 = np.float32([ [0,0],[0,h2-1],[w2-1,h2-1],[w2-1,0] ]).reshape(-1,1,2)
-    dst = cv2.perspectiveTransform(pts2,M)
-    Mperspective = cv2.getPerspectiveTransform(dst, pts2)
+    dst = cv2.perspectiveTransform(pts,M)
+    Mperspective = cv2.getPerspectiveTransform(dst, pts)
+    print 'Mperspective', Mperspective
     warpedImg = cv2.warpPerspective(img2,Mperspective,(w,h))
 
     img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+    cv2.imwrite('transform-perpectived-img.jpg', warpedImg)
 
 else:
     print "Not enough matches are found - %d/%d" % (len(good),MIN_MATCH_COUNT)

@@ -1,6 +1,8 @@
 import glob
 import cv2
 import numpy as np
+import os
+os.system('rm warpedImg*')
 
 def getTranslationImage(templat, image, numberImage):
     # params for ShiTomasi corner detection
@@ -69,7 +71,7 @@ white = (255, 255, 255)
 # print 1.0/len(paths)
 # blankImage = cv2.addWeighted(blankImage, 1.0 - 1.0/len(paths), tempImage, 1.0/len(paths), 0)
 
-MIN_MATCH_COUNT = 25
+MIN_MATCH_COUNT = 10
 
 # temporary comment
 resultImg = cv2.imread(paths[0], 0)
@@ -84,7 +86,7 @@ for path in paths[1:]:
     
     # Initiate SIFT detector
     cropImg = cv2.imread(path, 0)
-    print path, paths.index(path)
+    h, w = cropImg.shape
     # cv2.imwrite('test%d.jpg' % paths.index(path), cropImg)
 
     # find the keypoints and descriptors with SIFT
@@ -106,11 +108,22 @@ for path in paths[1:]:
             if m.distance < 0.7*n.distance:
                 good.append(m)
         if len(good)>MIN_MATCH_COUNT:
-            countUseableImg += 1
+            src_pts = np.float32([ kp1[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
+            dst_pts = np.float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
+            M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC,5.0)
+            pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
+            dst = cv2.perspectiveTransform(pts,M)
+            Mperspective = cv2.getPerspectiveTransform(dst, pts)
+            warpedImg = cv2.warpPerspective(cropImg,Mperspective,(w,h))
+            fileName = path[path.index('\\') +1 :path.rfind('.')]
+            print 'fileName is',fileName
+            cv2.imwrite('warpedImgfrom%s.jpg' % (fileName), warpedImg)
             print 'countUseableImg', countUseableImg
-            cropImg = getTranslationImage(templateSelectedImg, cropImg, countUseableImg)
+            # cropImg = getTranslationImage(templateSelectedImg, cropImg, countUseableImg)
+            countUseableImg += 1
             alpha = 1.0 / countUseableImg
-            resultImg = cv2.addWeighted(resultImg, 1 - alpha, cropImg, alpha, 0)
+            # resultImg = cv2.addWeighted(resultImg, 1 - alpha, cropImg, alpha, 0)
+            resultImg = cv2.addWeighted(resultImg, 1 - alpha, warpedImg, alpha, 0)
         else:
             pass
     except:
@@ -118,7 +131,7 @@ for path in paths[1:]:
 
     
 cv2.imshow('resultImg', resultImg)
-cv2.imwrite('resultUseTransition.jpg', resultImg)
+cv2.imwrite('resultDontUseTransition.jpg', resultImg)
 cv2.waitKey(0)
 cv2.destoryAllWindows()
 
