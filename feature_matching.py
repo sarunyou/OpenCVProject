@@ -107,8 +107,10 @@ while True:
                 else :
                     blendedImg = cv2.addWeighted(blendedImg, 1 - alpha, pairsMatchedAndFilename[i][indexImg], alpha, 0)
             print 'blendedImgs has ', len(blendedImgs)
-            stackImg = np.hstack(blendedImgs)
-            cv2.imshow('stackImgBestMatchedImgs ' + ' '.join(str(e) for e in numbersBlendedImg[:len(blendedImgs)]), stackImg)
+            stackImgBlended = np.hstack(blendedImgs)
+            stackImgCropedAndDenoise = np.hstack((img1, medianBlurImg))
+            cv2.imshow('stackImgBestMatchedImgs ' + ' '.join(str(e) for e in numbersBlendedImg[:len(blendedImgs)]), stackImgBlended)
+            cv2.imshow('origin and medianBlur', stackImgCropedAndDenoise)
                 
             pairsMatchedAndFilename.sort(key=lambda x: x[0])
             isThereCropImg = False
@@ -124,4 +126,6 @@ while True:
         cv2.destroyWindow('Crop Image')
         # Crop image
         img1 = frame[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
+        medianBlurImg = cv2.medianBlur(img1, 3)
+
         isThereCropImg = True
