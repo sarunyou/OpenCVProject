@@ -3,6 +3,24 @@ import cv2
 from matplotlib import pyplot as plt
 from common import draw_str, RectSelector
 
+def getNoise(image): 
+    row,col= image.shape[:2]
+    s_vs_p = 0.4
+    amount = 0.05
+    out = image
+    # Salt mode
+    num_salt = np.ceil(amount * image.size * s_vs_p)
+    coords = [np.random.randint(0, i - 1, int(num_salt))
+                for i in image.shape]
+    out[coords] = 1
+
+    # Pepper mode
+    num_pepper = np.ceil(amount* image.size * (1. - s_vs_p))
+    coords = [np.random.randint(0, i - 1, int(num_pepper))
+                for i in image.shape]
+    out[coords] = 0
+    return out
+
 MIN_MATCH_COUNT = 10
 video = cv2.VideoCapture(0)
 isThereCropImg = False
@@ -13,6 +31,7 @@ while True:
     ok, frame = video.read()
     if not ok:
         break
+    frame = getNoise(frame)
     img2 = frame
     # img2 = cv2.imread('box_in_scene.png',0) # trainImage
 
@@ -89,7 +108,7 @@ while True:
                     blendedImg = cv2.addWeighted(blendedImg, 1 - alpha, pairsMatchedAndFilename[i][indexImg], alpha, 0)
             print 'blendedImgs has ', len(blendedImgs)
             stackImg = np.hstack(blendedImgs)
-            cv2.imshow('stackImg', stackImg)
+            cv2.imshow('stackImgBestMatchedImgs ' + ' '.join(str(e) for e in numbersBlendedImg[:len(blendedImgs)]), stackImg)
                 
             pairsMatchedAndFilename.sort(key=lambda x: x[0])
             isThereCropImg = False
