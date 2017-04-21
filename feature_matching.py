@@ -5,8 +5,8 @@ from common import draw_str, RectSelector
 
 def getNoise(image): 
     row,col= image.shape[:2]
-    s_vs_p = 0.4
-    amount = 0.05
+    s_vs_p = 0.5
+    amount = 0.2
     out = image
     # Salt mode
     num_salt = np.ceil(amount * image.size * s_vs_p)
@@ -80,14 +80,16 @@ while True:
         draw_params = dict(matchColor = (0,255,0), # draw matches in green color
                         singlePointColor = (255,0,0),
                         matchesMask = matchesMask, # draw only inliers
-                        flags = 0)
+                        flags = 2)
 
         img3 = cv2.drawMatches(img1,kp1,img2,kp2,good,None,**draw_params)
 
-        cv2.imshow('img3',img3)
+        cv2.imshow('detection processing',img3)
         # cv2.imshow('blendedImg', blendedImg)
         if ch == ord('s'):
             numbersBlendedImg = [10, 20, 30, 40, 50]
+            pairsMatchedAndFilename.sort(key=lambda x: x[0], reverse=True)
+            # numbersBlendedImg = [2, 4, 6, 8, 10]
             blendedImgs = []
             print 'There are %d imgs' % (len(pairsMatchedAndFilename))
             if len(pairsMatchedAndFilename) < 50:
@@ -96,6 +98,7 @@ while True:
                 limitNumbersBlendedImg = 50
             indexImg = 1
             for i in range(limitNumbersBlendedImg):
+                print 'matche is %d points : %d' % (pairsMatchedAndFilename[i][0], i)
                 for j in numbersBlendedImg:
                     k = j-1
                     if i == k:
@@ -107,12 +110,21 @@ while True:
                 else :
                     blendedImg = cv2.addWeighted(blendedImg, 1 - alpha, pairsMatchedAndFilename[i][indexImg], alpha, 0)
             print 'blendedImgs has ', len(blendedImgs)
-            stackImgBlended = np.hstack(blendedImgs)
+            unsharp_images = []
+            for image in blendedImgs:
+                gaussian_3 = cv2.GaussianBlur(image, (9,9), 10.0)
+                unsharp_image = cv2.addWeighted(image, 1.5, gaussian_3, -0.5, 0, image)
+                unsharp_image = cv2.medianBlur(unsharp_image, 3)
+                unsharp_images.append(unsharp_image)
+                # cv2.imwrite("lenna_unsharp.jpg", unsharp_image)
+
+            # stackImgBlended = np.hstack(blendedImgs)
+            stackImgBlended = np.hstack(unsharp_images)
             stackImgCropedAndDenoise = np.hstack((img1, medianBlurImg))
             cv2.imshow('stackImgBestMatchedImgs ' + ' '.join(str(e) for e in numbersBlendedImg[:len(blendedImgs)]), stackImgBlended)
             cv2.imshow('origin and medianBlur', stackImgCropedAndDenoise)
+            cv2.imshow('stackImg not MedianBlur', stackImgBlendedUnMedianBlur)
                 
-            pairsMatchedAndFilename.sort(key=lambda x: x[0])
             isThereCropImg = False
     else :
         cv2.imshow('frame', frame)
